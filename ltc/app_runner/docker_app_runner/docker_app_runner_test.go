@@ -27,7 +27,6 @@ var _ = Describe("DockerAppRunner", func() {
 	BeforeEach(func() {
 		fakeReceptorClient = &fake_receptor.FakeClient{}
 		appRunner = docker_app_runner.New(fakeReceptorClient, "myDiegoInstall.com")
-
 	})
 
 	Describe("PortConfig", func() {
@@ -38,7 +37,6 @@ var _ = Describe("DockerAppRunner", func() {
 					Exposed:   []uint16{},
 				}
 				Expect(portConfig.IsEmpty()).To(BeTrue())
-
 			})
 
 			It("returns false if the port config has exposed ports", func() {
@@ -123,7 +121,7 @@ var _ = Describe("DockerAppRunner", func() {
 					AppArgs:         []string{},
 				})
 
-				Expect(err.Error()).To(Equal(docker_app_runner.AttemptedToCreateLatticeDebugErrorMessage))
+				Expect(err).To(MatchError(docker_app_runner.AttemptedToCreateLatticeDebugErrorMessage))
 			})
 		})
 
@@ -210,8 +208,7 @@ var _ = Describe("DockerAppRunner", func() {
 				Ports:                docker_app_runner.PortConfig{Monitored: 8080, Exposed: []uint16{8080}},
 			})
 
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("app-already-desired is already running"))
+			Expect(err).To(MatchError("app-already-desired is already running"))
 			Expect(fakeReceptorClient.DesiredLRPsCallCount()).To(Equal(1))
 		})
 
@@ -230,8 +227,7 @@ var _ = Describe("DockerAppRunner", func() {
 					Ports:                docker_app_runner.PortConfig{Exposed: []uint16{8080}, Monitored: 8080},
 				})
 
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Invalid repository name (¥¥¥Bad-Docker¥¥¥), only [a-z0-9-_.] are allowed"))
+				Expect(err).To(MatchError(HavePrefix("Invalid repository name (¥¥¥Bad-Docker¥¥¥), only [a-z0-9-_.] are allowed")))
 			})
 		})
 
@@ -253,8 +249,7 @@ var _ = Describe("DockerAppRunner", func() {
 					Ports:                docker_app_runner.PortConfig{Exposed: []uint16{8080}, Monitored: 8080},
 				})
 
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(upsertError))
+				Expect(err).To(MatchError(upsertError))
 			})
 
 			It("returns desiring lrp errors", func() {
@@ -274,8 +269,7 @@ var _ = Describe("DockerAppRunner", func() {
 					Ports:                docker_app_runner.PortConfig{Exposed: []uint16{8080}, Monitored: 8080},
 				})
 
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(receptorError))
+				Expect(err).To(MatchError(receptorError))
 			})
 
 			It("returns existing count errors", func() {
@@ -295,8 +289,7 @@ var _ = Describe("DockerAppRunner", func() {
 					Ports:                docker_app_runner.PortConfig{Exposed: []uint16{8080}, Monitored: 8080},
 				})
 
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(receptorError))
+				Expect(err).To(MatchError(receptorError))
 			})
 		})
 	})
@@ -351,7 +344,7 @@ var _ = Describe("DockerAppRunner", func() {
 			Expect(fakeReceptorClient.UpsertDomainCallCount()).To(Equal(1))
 			domain, ttl := fakeReceptorClient.UpsertDomainArgsForCall(0)
 			Expect(domain).To(Equal("lattice"))
-			Expect(ttl).To(Equal(time.Duration(0)))
+			Expect(ttl).To(BeZero())
 
 			Expect(fakeReceptorClient.CreateDesiredLRPCallCount()).To(Equal(1))
 			Expect(fakeReceptorClient.CreateDesiredLRPArgsForCall(0)).To(Equal(desiredLRP))
@@ -369,10 +362,9 @@ var _ = Describe("DockerAppRunner", func() {
 
 			lrpName, err := appRunner.CreateLrp(lrpJson)
 
-			Expect(err).To(HaveOccurred())
 			Expect(lrpName).To(Equal("app-already-desired"))
+			Expect(err).To(MatchError("app-already-desired is already running"))
 
-			Expect(err.Error()).To(Equal("app-already-desired is already running"))
 			Expect(fakeReceptorClient.DesiredLRPsCallCount()).To(Equal(1))
 			Expect(fakeReceptorClient.CreateDesiredLRPCallCount()).To(Equal(0))
 		})
@@ -388,9 +380,9 @@ var _ = Describe("DockerAppRunner", func() {
 
 				lrpName, err := appRunner.CreateLrp(lrpJson)
 
-				Expect(err).To(HaveOccurred())
 				Expect(lrpName).To(Equal("lattice-debug"))
-				Expect(err.Error()).To(Equal(docker_app_runner.AttemptedToCreateLatticeDebugErrorMessage))
+				Expect(err).To(MatchError(docker_app_runner.AttemptedToCreateLatticeDebugErrorMessage))
+
 				Expect(fakeReceptorClient.CreateDesiredLRPCallCount()).To(Equal(0))
 			})
 		})
@@ -398,9 +390,9 @@ var _ = Describe("DockerAppRunner", func() {
 		It("returns an error for invalid JSON", func() {
 			lrpName, err := appRunner.CreateLrp([]byte(`{"Value":"test value`))
 
-			Expect(err).To(HaveOccurred())
 			Expect(lrpName).To(BeEmpty())
-			Expect(err.Error()).To(Equal("unexpected end of JSON input"))
+			Expect(err).To(MatchError("unexpected end of JSON input"))
+
 			Expect(fakeReceptorClient.CreateDesiredLRPCallCount()).To(Equal(0))
 		})
 
@@ -418,9 +410,8 @@ var _ = Describe("DockerAppRunner", func() {
 
 				lrpName, err := appRunner.CreateLrp(lrpJson)
 
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(receptorError))
 				Expect(lrpName).To(Equal("nescafe-app"))
+				Expect(err).To(MatchError(receptorError))
 			})
 
 			It("returns upsert domain errors", func() {
@@ -437,9 +428,8 @@ var _ = Describe("DockerAppRunner", func() {
 
 				lrpName, err := appRunner.CreateLrp(lrpJson)
 
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(upsertError))
 				Expect(lrpName).To(Equal("whatever-app"))
+				Expect(err).To(MatchError(upsertError))
 			})
 
 			It("returns existing count errors", func() {
@@ -457,9 +447,8 @@ var _ = Describe("DockerAppRunner", func() {
 
 				lrpName, err := appRunner.CreateLrp(lrpJson)
 
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(receptorError))
 				Expect(lrpName).To(Equal("nescafe-app"))
+				Expect(err).To(MatchError(receptorError))
 			})
 		})
 
@@ -473,12 +462,12 @@ var _ = Describe("DockerAppRunner", func() {
 			instanceCount := 25
 
 			err := appRunner.ScaleApp("americano-app", instanceCount)
+
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(fakeReceptorClient.UpdateDesiredLRPCallCount()).To(Equal(1))
 			processGuid, updateRequest := fakeReceptorClient.UpdateDesiredLRPArgsForCall(0)
 			Expect(processGuid).To(Equal("americano-app"))
-
 			Expect(updateRequest).To(Equal(receptor.DesiredLRPUpdateRequest{Instances: &instanceCount}))
 		})
 
@@ -488,8 +477,7 @@ var _ = Describe("DockerAppRunner", func() {
 
 			err := appRunner.ScaleApp("app-not-running", 15)
 
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("app-not-running is not started."))
+			Expect(err).To(MatchError("app-not-running is not started."))
 			Expect(fakeReceptorClient.DesiredLRPsCallCount()).To(Equal(1))
 		})
 
@@ -502,7 +490,7 @@ var _ = Describe("DockerAppRunner", func() {
 				fakeReceptorClient.UpdateDesiredLRPReturns(receptorError)
 
 				err := appRunner.ScaleApp("americano-app", 17)
-				Expect(err).To(Equal(receptorError))
+				Expect(err).To(MatchError(receptorError))
 			})
 
 			It("returns errors fetching the existing lrp count", func() {
@@ -510,7 +498,7 @@ var _ = Describe("DockerAppRunner", func() {
 				fakeReceptorClient.DesiredLRPsReturns([]receptor.DesiredLRPResponse{}, receptorError)
 
 				err := appRunner.ScaleApp("nescafe-app", 2)
-				Expect(err).To(Equal(receptorError))
+				Expect(err).To(MatchError(receptorError))
 			})
 		})
 	})

@@ -66,7 +66,7 @@ var _ = Describe("AppRunner", func() {
 				appList, err := appExaminer.ListApps()
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(appList)).To(Equal(3))
+				Expect(appList).To(HaveLen(3))
 
 				process1 := appList[0]
 				Expect(process1.ProcessGuid).To(Equal("process1-scalingUp"))
@@ -74,7 +74,7 @@ var _ = Describe("AppRunner", func() {
 				Expect(process1.ActualRunningInstances).To(Equal(1))
 				Expect(process1.DiskMB).To(Equal(256))
 				Expect(process1.MemoryMB).To(Equal(100))
-				Expect(process1.Routes).To(Equal(route_helpers.AppRoutes{route_helpers.AppRoute{Hostnames: []string{"happy", "joy"}}}))
+				Expect(process1.Routes).To(ConsistOf(route_helpers.AppRoute{Hostnames: []string{"happy", "joy"}}))
 				Expect(process1.EnvironmentVariables).To(Equal([]app_examiner.EnvironmentVariable{}))
 				Expect(process1.StartTimeout).To(Equal(uint(30)))
 				Expect(process1.CPUWeight).To(Equal(uint(94)))
@@ -89,7 +89,7 @@ var _ = Describe("AppRunner", func() {
 				Expect(process2.ActualRunningInstances).To(Equal(1))
 				Expect(process2.DiskMB).To(Equal(564))
 				Expect(process2.MemoryMB).To(Equal(200))
-				Expect(process2.Routes).To(Equal(route_helpers.AppRoutes{route_helpers.AppRoute{Hostnames: []string{"ren", "stimpy"}}}))
+				Expect(process2.Routes).To(ConsistOf(route_helpers.AppRoute{Hostnames: []string{"ren", "stimpy"}}))
 
 				process3 := appList[2]
 				Expect(process3.ProcessGuid).To(Equal("process3-stopping"))
@@ -107,7 +107,7 @@ var _ = Describe("AppRunner", func() {
 				_, err := appExaminer.ListApps()
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("You should go catch it."))
+				Expect(err).To(MatchError("You should go catch it."))
 			})
 
 			It("returns errors from fetching the ActualLRPs", func() {
@@ -116,7 +116,7 @@ var _ = Describe("AppRunner", func() {
 				_, err := appExaminer.ListApps()
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Receptor is on fire!!"))
+				Expect(err).To(MatchError("Receptor is on fire!!"))
 			})
 		})
 	})
@@ -145,7 +145,7 @@ var _ = Describe("AppRunner", func() {
 				cellList, err := appExaminer.ListCells()
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(cellList)).To(Equal(3))
+				Expect(cellList).To(HaveLen(3))
 
 				cell1 := cellList[0]
 				Expect(cell1.CellID).To(Equal("Cell-1"))
@@ -184,11 +184,11 @@ var _ = Describe("AppRunner", func() {
 				cellList, err := appExaminer.ListCells()
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(cellList)).To(Equal(2))
+				Expect(cellList).To(HaveLen(2))
 
 				cell0 := cellList[0]
 				Expect(cell0.CellID).To(Equal("Cell-0"))
-				Expect(cell0.Missing).To(Equal(true))
+				Expect(cell0.Missing).To(BeTrue())
 				Expect(cell0.RunningInstances).To(Equal(1))
 				Expect(cell0.ClaimedInstances).To(Equal(1))
 			})
@@ -210,7 +210,7 @@ var _ = Describe("AppRunner", func() {
 				cellList, err := appExaminer.ListCells()
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(cellList)).To(Equal(0))
+				Expect(cellList).To(HaveLen(0))
 			})
 		})
 
@@ -220,6 +220,7 @@ var _ = Describe("AppRunner", func() {
 				_, err := appExaminer.ListCells()
 
 				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError("You should go catch it."))
 			})
 
 			It("returns errors from fetching the ActualLRPs", func() {
@@ -227,6 +228,7 @@ var _ = Describe("AppRunner", func() {
 				_, err := appExaminer.ListCells()
 
 				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError("Receptor is Running."))
 			})
 
 		})
@@ -398,7 +400,7 @@ var _ = Describe("AppRunner", func() {
 
 					result, err := appExaminer.AppStatus("peekaboo-app")
 
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 					Expect(fakeReceptorClient.GetDesiredLRPCallCount()).To(Equal(1))
 					Expect(fakeReceptorClient.ActualLRPsByProcessGuidCallCount()).To(Equal(1))
 					Expect(fakeReceptorClient.GetDesiredLRPArgsForCall(0)).To(Equal("peekaboo-app"))
@@ -461,15 +463,14 @@ var _ = Describe("AppRunner", func() {
 
 				result, err := appExaminer.AppStatus("peekaboo-app")
 
+				Expect(result).To(BeZero())
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal(app_examiner.AppNotFoundErrorMessage))
+				Expect(err).To(MatchError(app_examiner.AppNotFoundErrorMessage))
+
 				Expect(fakeReceptorClient.GetDesiredLRPCallCount()).To(Equal(1))
 				Expect(fakeReceptorClient.ActualLRPsByProcessGuidCallCount()).To(Equal(1))
 				Expect(fakeReceptorClient.GetDesiredLRPArgsForCall(0)).To(Equal("peekaboo-app"))
 				Expect(fakeReceptorClient.ActualLRPsByProcessGuidArgsForCall(0)).To(Equal("peekaboo-app"))
-
-				Expect(result).To(Equal(app_examiner.AppInfo{}))
-
 			})
 
 		})
@@ -480,7 +481,7 @@ var _ = Describe("AppRunner", func() {
 				_, err := appExaminer.AppStatus("app-to-status")
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Oops."))
+				Expect(err).To(MatchError("Oops."))
 			})
 
 			It("returns errors from fetching the ActualLRPs", func() {
@@ -488,7 +489,7 @@ var _ = Describe("AppRunner", func() {
 				_, err := appExaminer.AppStatus("kiss-my-bumper")
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("ABANDON SHIP!!!!"))
+				Expect(err).To(MatchError("ABANDON SHIP!!!!"))
 			})
 		})
 	})
@@ -503,6 +504,7 @@ var _ = Describe("AppRunner", func() {
 			fakeReceptorClient.ActualLRPsByProcessGuidReturns(actualLrpsResponse, nil)
 
 			count, placementError, err := appExaminer.RunningAppInstancesInfo("americano-app")
+
 			Expect(placementError).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(count).To(Equal(2))
@@ -518,7 +520,7 @@ var _ = Describe("AppRunner", func() {
 			_, _, err := appExaminer.RunningAppInstancesInfo("nescafe-app")
 
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(receptorError))
+			Expect(err).To(MatchError(receptorError))
 		})
 
 		Context("when there are placement errors on an instance", func() {
@@ -531,6 +533,7 @@ var _ = Describe("AppRunner", func() {
 				fakeReceptorClient.ActualLRPsByProcessGuidReturns(actualLrpsResponse, nil)
 
 				count, placementError, err := appExaminer.RunningAppInstancesInfo("americano-app")
+
 				Expect(placementError).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(count).To(Equal(2))
@@ -544,6 +547,7 @@ var _ = Describe("AppRunner", func() {
 			fakeReceptorClient.ActualLRPsReturns(actualLRPs, nil)
 
 			exists, err := appExaminer.AppExists("americano-app")
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(exists).To(BeTrue())
 		})
@@ -553,6 +557,7 @@ var _ = Describe("AppRunner", func() {
 			fakeReceptorClient.ActualLRPsReturns(actualLRPs, nil)
 
 			exists, err := appExaminer.AppExists("americano-app")
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(exists).To(BeFalse())
 		})
@@ -564,7 +569,7 @@ var _ = Describe("AppRunner", func() {
 
 				exists, err := appExaminer.AppExists("americano-app")
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Something Bad"))
+				Expect(err).To(MatchError("Something Bad"))
 				Expect(exists).To(BeFalse())
 			})
 		})
